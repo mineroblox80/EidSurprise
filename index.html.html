@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eid Mubarak Surprise</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Patrick+Hand&family=Poppins:wght@600&display=swap');
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: #000;
+            overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        #intro-screen {
+            position: fixed; inset: 0;
+            background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+            z-index: 1000;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            cursor: pointer;
+            color: white;
+            transition: opacity 1s ease;
+        }
+
+        .phone-wrapper {
+            width: 60px; height: 110px;
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 12px;
+            position: relative;
+            animation: rotateDevice 3s infinite ease-in-out;
+        }
+
+        @keyframes rotateDevice {
+            0%, 20% { transform: rotate(0deg); }
+            50%, 80% { transform: rotate(90deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        #canvas-container { position: fixed; inset: 0; z-index: 1; display: none; }
+        #matrix { display: block; width: 100%; height: 100%; }
+
+        #stars {
+            position: fixed; inset: 0; display: none;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            z-index: 0;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+        }
+
+        #ui-layer { 
+            position: relative; 
+            z-index: 10; 
+            text-align: center; 
+            display: none; 
+            pointer-events: none;
+            transition: opacity 1s ease;
+        }
+
+        .status-text {
+            font-size: clamp(2.5rem, 12vw, 5rem);
+            color: #fff;
+            text-shadow: 0 0 20px #ffb3ff;
+            opacity: 0; 
+            transform: scale(0.5);
+        }
+
+        .pop-anim {
+            animation: popText 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popText {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Intense Glitter */
+        .glitter {
+            position: absolute;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 100;
+            top: 50%; left: 50%;
+            animation: glitter-burst 2s ease-out forwards;
+        }
+
+        @keyframes glitter-burst {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.2); opacity: 0; }
+        }
+
+        #book-container {
+            display: none;
+            perspective: 2000px;
+            z-index: 20;
+            width: 90vw; max-width: 500px;
+            height: 60vh; max-height: 380px;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+        }
+
+        .book { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; }
+        .sheet {
+            width: 50%; height: 100%;
+            position: absolute; right: 0;
+            transform-origin: left;
+            transition: transform 1.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+            transform-style: preserve-3d;
+            z-index: 5;
+        }
+
+        #sheet1 { z-index: 10; } 
+        #base-page { z-index: 1; width: 50%; height: 100%; position: absolute; right: 0; }
+
+        .page-face {
+            position: absolute; inset: 0;
+            background: #fff;
+            padding: 20px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            text-align: center;
+            backface-visibility: hidden;
+            border-radius: 0 10px 10px 0;
+            box-shadow: inset 3px 0 10px rgba(0,0,0,0.05);
+        }
+
+        .back { transform: rotateY(180deg); border-radius: 10px 0 0 10px; }
+        .handwritten { font-family: 'Patrick Hand', cursive; font-size: 1.3rem; color: #4a6a8a; }
+        .cover { background: linear-gradient(135deg, #1a472a, #0a2e1a); color: #d4af37; border: 3px solid #d4af37; }
+        .flipped { transform: rotateY(-180deg); z-index: 1 !important; }
+
+        .fade-out { opacity: 0 !important; }
+        .fade-in { opacity: 1 !important; }
+
+        .rewatch-btn {
+            margin-top: 20px; padding: 10px 20px;
+            background: #1a472a; color: #d4af37;
+            border: 1.5px solid #d4af37; border-radius: 25px;
+            font-family: 'Gaegu'; cursor: pointer;
+        }
+
+        .star { position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: twinkle var(--duration) infinite; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <audio id="eidAudio" loop preload="auto">
+        <source src="https://www.islamic-relief.org.uk/wp-content/uploads/2021/05/Eid-Mubarak-Nasheed.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="intro-screen" onclick="startLoading()">
+        <div class="phone-wrapper"></div>
+        <p style="margin-top: 30px; font-family: 'Gaegu'; font-size: 1.2rem;">Tap to Enter</p>
+    </div>
+
+    <div id="stars"></div>
+    <div id="canvas-container"><canvas id="matrix"></canvas></div>
+    <div id="ui-layer"><h1 id="main-text" class="status-text">LOADING...</h1></div>
+
+    <div id="book-container">
+        <div class="book">
+            <div class="sheet" id="sheet1" onclick="this.classList.add('flipped')">
+                <div class="page-face cover">
+                    <div style="font-size: 3rem;">🌙</div>
+                    <h1 style="font-family: 'Gaegu';">EID MUBARAK</h1>
+                    <p style="font-size: 0.8rem;">Tap to Open</p>
+                </div>
+                <div class="page-face back">
+                    <p class="handwritten">Wishing you a beautiful Eid filled with endless joy and blessings...</p>
+                    <div style="font-size: 2.5rem;">😊♥</div>
+                </div>
+            </div>
+
+            <div class="sheet" id="sheet2" onclick="this.classList.add('flipped')">
+                <div class="page-face">
+                    <p class="handwritten">...and may your heart be filled with wonders today and every day!</p>
+                    <div style="font-size: 2rem;">✨🌙</div>
+                </div>
+                <div class="page-face back">
+                    <p class="handwritten" style="color: #d44d5c; font-weight: bold;">Don't forget my salami!</p>
+                    <div style="font-size: 3.5rem;">💸💰</div>
+                    <p class="handwritten" style="font-size: 0.8rem;">(Bkash-transfer is fine! 😉)</p>
+                </div>
+            </div>
+
+            <div id="base-page">
+                <div class="page-face" style="width: 100%;">
+                    <h2 class="handwritten" style="color:#222">The End</h2>
+                    <div style="font-size: 3rem;">🌸</div>
+                    <button class="rewatch-btn" onclick="location.reload()">Rewatch? ↺</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        const audio = document.getElementById('eidAudio');
+        let animationActive = true;
+        let rainDrops = [];
+        const fontSize = 18;
+        const alphabet = "EIDULFITRMUBARAK";
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const columns = Math.ceil(canvas.width / fontSize);
+            rainDrops = Array.from({ length: columns }).fill(1);
+        }
+
+        function drawRain() {
+            if (!animationActive) return;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffb3ff'; 
+            ctx.font = fontSize + 'px monospace';
+            for (let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+                if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) rainDrops[i] = 0;
+                rainDrops[i]++;
+            }
+        }
+
+        function animateText(textElement, newText) {
+            textElement.innerText = newText;
+            textElement.classList.remove('pop-anim');
+            void textElement.offsetWidth; 
+            textElement.classList.add('pop-anim');
+        }
+
+        function createGlitter() {
+            const uiLayer = document.getElementById('ui-layer');
+            const colors = ['#FFD700', '#ffb3ff', '#ffffff', '#00e6e6', '#ff3399'];
+            for (let i = 0; i < 150; i++) { // Increased particle count
+                const glitter = document.createElement('div');
+                glitter.className = 'glitter';
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 400 + 50; // Wider explosion
+                glitter.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+                glitter.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                glitter.style.backgroundColor = color;
+                glitter.style.boxShadow = `0 0 10px ${color}`;
+                uiLayer.appendChild(glitter);
+                setTimeout(() => glitter.remove(), 2000);
+            }
+        }
+
+        async function startLoading() {
+            // Force Audio Playback on Click
+            audio.play().then(() => console.log("Audio started")).catch(e => {
+                console.log("Play failed, retrying on next interaction");
+            });
+
+            resizeCanvas();
+            document.getElementById('intro-screen').classList.add('fade-out');
+            setTimeout(() => {
+                document.getElementById('intro-screen').style.display = 'none';
+                document.getElementById('canvas-container').style.display = 'block';
+                document.getElementById('ui-layer').style.display = 'block';
+            }, 1000);
+            
+            let rainInterval = setInterval(drawRain, 35);
+            const mainText = document.getElementById('main-text');
+
+            const sequence = [
+                { text: "LOADING...", delay: 3000 },
+                { text: "READY?", delay: 1500 },
+                { text: "3", delay: 1000 },
+                { text: "2", delay: 1000 },
+                { text: "1", delay: 1000 },
+                { text: "Eid Ul", delay: 1000 },
+                { text: "Fitr", delay: 1000 },
+                { text: "Mubarak", delay: 3000 }
+            ];
+
+            for (let step of sequence) {
+                animateText(mainText, step.text);
+                if (step.text === "Mubarak") createGlitter();
+                await new Promise(r => setTimeout(r, step.delay));
+            }
+
+            // Smooth Transition to Book
+            animationActive = false;
+            document.getElementById('ui-layer').classList.add('fade-out');
+            document.getElementById('canvas-container').classList.add('fade-out');
+            
+            setTimeout(() => {
+                clearInterval(rainInterval);
+                document.getElementById('canvas-container').style.display = 'none';
+                document.getElementById('ui-layer').style.display = 'none';
+                
+                const stars = document.getElementById('stars');
+                const book = document.getElementById('book-container');
+                
+                stars.style.display = 'block';
+                book.style.display = 'block';
+                
+                initStars();
+                
+                // Fade in the new scene
+                setTimeout(() => {
+                    stars.classList.add('fade-in');
+                    book.classList.add('fade-in');
+                }, 50);
+            }, 1000);
+        }
+
+        function initStars() {
+            const starContainer = document.getElementById('stars');
+            for (let i = 0; i < 80; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                const size = Math.random() * 2 + 'px';
+                star.style.width = size; star.style.height = size;
+                star.style.top = Math.random() * 100 + '%';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.setProperty('--duration', (Math.random() * 3 + 1) + 's');
+                starContainer.appendChild(star);
+            }
+        }
+    </script>
+</body>
+</html>
